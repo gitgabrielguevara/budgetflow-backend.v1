@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import pool from "./config/db";
 import userRoutes from "./routes/userRoutes";
+import transactionRoutes from "./routes/transactionRoutes";
+import bodyParser from "body-parser";
 
 dotenv.config();
 
@@ -12,6 +14,8 @@ const PORT = process.env.PORT || 5037;
 app.use(cors());
 app.use(express.json());
 app.use("/api/users", userRoutes);
+app.use("/transactions", transactionRoutes);
+app.use(bodyParser.urlencoded({ extended: true }));
 
 pool.query("SELECT NOW()", (err, res) => {
   if (err) {
