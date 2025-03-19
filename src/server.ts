@@ -15,7 +15,6 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/transactions", transactionRoutes);
-app.use(bodyParser.urlencoded({ extended: true }));
 
 pool.query("SELECT NOW()", (err, res) => {
   if (err) {
