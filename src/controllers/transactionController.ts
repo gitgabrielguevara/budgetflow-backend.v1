@@ -59,3 +59,106 @@ export const addTransaction = async (
     res.status(500).json({ message: "Server Error 💀" });
   }
 };
+
+export const deleteTransaction = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    // check if the transaction exist
+    const transaction = await pool.query(
+      "SELECT * FROM transactions WHERE id = $1",
+      [id]
+    );
+
+    if (transaction.rows.length === 0) {
+      res.status(404).json({ message: "Transaction not found 🧐" });
+      return;
+    }
+
+    // Delete transaction
+    await pool.query("DELETE from transactions WHERE id =$1", [id]);
+
+    res.status(200).json({ success: true, message: "Transaction deleted 😵" });
+  } catch (error) {
+    console.error("Error deleting transacton: 👎", error);
+    res.status(500).json({ message: "Server Error 💀" });
+  }
+};
+
+export const updateTransaction = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { user_id, amount, date, category_id, type, notes } = req.body;
+
+    //check if the transaction exist
+    const transaction = await pool.query(
+      "SELECT * FROM transactions WHERE id = $1",
+      [id]
+    );
+
+    if (transaction.rows.length === 0) {
+      res.status(404).json({ message: "Transaction not found 🧐" });
+      return;
+    }
+
+    // Ensure at least one field is provided for the udpate
+    if (!user_id && !amount && !date && !category_id && !type && !notes) {
+      res.status(400).json({ message: "No field provided for the update 🫤" });
+      return;
+    }
+
+    // Build the dynamic update query
+    let updateQuery = "UPDATE transaction SET";
+    const updateValues: any[] = [];
+    let counter = 1;
+
+    if (user_id) {
+      updateQuery += `user_id = $${counter}, `;
+      updateValues.push(user_id);
+      counter++;
+    }
+    if (date) {
+      updateQuery += `date = $${counter}, `;
+      updateValues.push(date);
+      counter++;
+    }
+    if (category_id !== undefined) {
+      updateQuery += `category_id = $${counter}, `;
+      updateValues.push(category_id);
+      counter++;
+    }
+    if (type) {
+      updateQuery += `type = $${type}, `;
+      updateValues.push(type);
+      counter++;
+    }
+    if (notes !== undefined) {
+      updateQuery += `notes = $${counter}, `;
+      updateValues.push.apply(notes);
+      counter++;
+    }
+
+    // Remove the last comma and add WHERE clause
+    updateQuery =
+      updateQuery.slice(0, -2) + ` WHERE id = $${counter} RETURNING *`;
+    updateValues.push(id);
+
+    // Execute the udpate query
+    const updateTransaction = await pool.query(updateQuery, updateValues);
+
+    res.status(200).json({
+      success: true,
+      message: "Transaction updated 🎉",
+      transaction: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Error updating transaction: ⛔️", error);
+    res.status(500).json({ message: "Server Error 💀" });
+  }
+};
