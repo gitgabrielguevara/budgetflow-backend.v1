@@ -113,44 +113,50 @@ export const updateTransaction = async (
       return;
     }
 
-    // Build the dynamic update query
+    // Initialize the dynamic query based on provided fields
     let updateQuery = "UPDATE transaction SET";
-    const updateValues: any[] = [];
-    let counter = 1;
+    let values: any[] = [];
+    let counter = [];
 
     if (user_id) {
-      updateQuery += `user_id = $${counter}, `;
-      updateValues.push(user_id);
-      counter++;
+      counter.push(`user_id = $${counter.length + 1}`);
+      values.push(user_id);
+    }
+    if (amount) {
+      counter.push(`amount = $${counter.length + 1}`);
+      values.push(amount);
     }
     if (date) {
-      updateQuery += `date = $${counter}, `;
-      updateValues.push(date);
-      counter++;
+      counter.push(`date = $${counter.length + 1}`);
+      values.push(date);
     }
-    if (category_id !== undefined) {
-      updateQuery += `category_id = $${counter}, `;
-      updateValues.push(category_id);
-      counter++;
+    if (category_id) {
+      counter.push(`category_id = $${counter.length + 1}`);
+      values.push(category_id);
     }
     if (type) {
-      updateQuery += `type = $${type}, `;
-      updateValues.push(type);
-      counter++;
+      counter.push(`type = $${counter.length + 1},`);
+      values.push(type);
     }
-    if (notes !== undefined) {
-      updateQuery += `notes = $${counter}, `;
-      updateValues.push.apply(notes);
-      counter++;
+    if (notes) {
+      counter.push(`notes = $${counter.length + 1},`);
+      values.push.apply(notes);
+    }
+
+    if (counter.length === 0) {
+      res.status(400).json({
+        message: "No valid fields provided for updating the transaction 🌾",
+      });
+      return;
     }
 
     // Remove the last comma and add WHERE clause
     updateQuery =
       updateQuery.slice(0, -2) + ` WHERE id = $${counter} RETURNING *`;
-    updateValues.push(id);
+    values.push(id);
 
     // Execute the udpate query
-    const updateTransaction = await pool.query(updateQuery, updateValues);
+    const result = await pool.query(updateQuery, values);
 
     res.status(200).json({
       success: true,

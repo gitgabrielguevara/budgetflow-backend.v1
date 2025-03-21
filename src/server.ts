@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import pool from "./config/db";
 import userRoutes from "./routes/userRoutes";
 import transactionRoutes from "./routes/transactionRoutes";
-import bodyParser from "body-parser";
 
 dotenv.config();
 
