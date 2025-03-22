@@ -93,7 +93,11 @@ export const updateTransaction = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      res.status(400).json({ message: " Invalid transaction ID format 🧮" });
+      return;
+    }
     const { user_id, amount, date, category_id, type, notes } = req.body;
 
     //check if the transaction exist
@@ -114,9 +118,9 @@ export const updateTransaction = async (
     }
 
     // Initialize the dynamic query based on provided fields
-    let updateQuery = "UPDATE transaction SET";
+    let updateFields: string[] = [];
     let values: any[] = [];
-    let counter = [];
+    let counter: string[] = [];
 
     if (user_id) {
       counter.push(`user_id = $${counter.length + 1}`);
@@ -135,32 +139,38 @@ export const updateTransaction = async (
       values.push(category_id);
     }
     if (type) {
-      counter.push(`type = $${counter.length + 1},`);
+      counter.push(`type = $${counter.length + 1}`);
       values.push(type);
     }
     if (notes) {
-      counter.push(`notes = $${counter.length + 1},`);
-      values.push.apply(notes);
+      counter.push(`notes = $${counter.length + 1}`);
+      values.push(notes);
     }
 
-    if (counter.length === 0) {
+    values.push(id);
+
+    if (values.length === 0) {
       res.status(400).json({
         message: "No valid fields provided for updating the transaction 🌾",
       });
       return;
     }
 
-    // Remove the last comma and add WHERE clause
-    updateQuery =
-      updateQuery.slice(0, -2) + ` WHERE id = $${counter} RETURNING *`;
-    values.push(id);
+    // Finalize the query
+    let updateQuery = `UPDATE transactions SET ${counter.join(
+      ", "
+    )} WHERE id = $${counter.length + 1} RETURNING *`;
+
+    // Check the query and values
+    console.log("Final Query:", updateQuery);
+    console.log("Values:", values);
 
     // Execute the udpate query
     const result = await pool.query(updateQuery, values);
 
     res.status(200).json({
       success: true,
-      message: "Transaction updated 🎉",
+      message: "Transaction updated successfully! ✅",
       transaction: result.rows[0],
     });
   } catch (error) {
