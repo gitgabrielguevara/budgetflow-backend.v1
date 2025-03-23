@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Transaction } from "../models/transactionModel";
 import pool from "../config/db";
 
 export const getTransactions = async (
@@ -28,7 +29,8 @@ export const addTransaction = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { user_id, amount, date, category_id, type, notes } = req.body;
+    const { user_id, amount, date, recurrence, category_id, type, notes } =
+      req.body;
 
     if (!user_id || !amount || !date || !type) {
       res.status(400).json({ message: "Missing required fields 🌾" });
@@ -44,10 +46,12 @@ export const addTransaction = async (
       user_id,
       amount,
       date,
+      recurrence || "none",
       category_id ? category_id : null,
       type,
       notes ? notes : null,
     ];
+    const recurrenceValue = recurrence || "none";
 
     const result = await pool.query(query, values);
     res.status(201).json({
@@ -88,6 +92,17 @@ export const deleteTransaction = async (
   }
 };
 
+export const checkRecurringTransaction = async (
+  id: number
+): Promise<string> => {
+  const result = await pool.query(
+    "SELECT recurrence FROM transactions WHERE id = $1",
+    [id]
+  );
+  if (result.rows.length === 0) return "Transaction not found";
+  return result.rows[0].recurrence;
+};
+
 export const updateTransaction = async (
   req: Request,
   res: Response
@@ -98,7 +113,8 @@ export const updateTransaction = async (
       res.status(400).json({ message: " Invalid transaction ID format 🧮" });
       return;
     }
-    const { user_id, amount, date, category_id, type, notes } = req.body;
+    const { user_id, amount, date, recurrence, category_id, type, notes } =
+      req.body;
 
     //check if the transaction exist
     const transaction = await pool.query(
@@ -106,13 +122,28 @@ export const updateTransaction = async (
       [id]
     );
 
+    //check if the transaction is recurring
+    const recurrenceStatus = await checkRecurringTransaction(id);
+    if (recurrenceStatus === "Transaction not found") {
+      res.status(400).json({ message: "Transaction not found 😯" });
+    }
+    console.log("Recurrence", recurrence);
+
     if (transaction.rows.length === 0) {
       res.status(404).json({ message: "Transaction not found 🧐" });
       return;
     }
 
     // Ensure at least one field is provided for the udpate
-    if (!user_id && !amount && !date && !category_id && !type && !notes) {
+    if (
+      !user_id &&
+      !amount &&
+      !date &&
+      recurrence &&
+      !category_id &&
+      !type &&
+      !notes
+    ) {
       res.status(400).json({ message: "No field provided for the update 🫤" });
       return;
     }
