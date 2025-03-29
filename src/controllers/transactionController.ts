@@ -38,8 +38,8 @@ export const addTransaction = async (
     }
 
     const query = ` 
-      INSERT INTO transactions (user_id, amount, date, category_id, type, notes)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+      INSERT INTO transactions (user_id, amount, date, recurrence, category_id, type, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
     `;
 
     const values = [
